@@ -58,8 +58,8 @@ useEffect(() => {
    const params = new URLSearchParams();
 
   if(processResult.data.make) params.set("make", processResult.data.make);
-  if(processResult.data.bodyType) params.set("model", processResult.data.bodyType);
-  if(processResult.data.color) params.set("year", processResult.data.color);
+  if(processResult.data.bodyType) params.set("bodyType", processResult.data.bodyType);
+  if(processResult.data.color) params.set("search", processResult.data.color);
   router.push(`/cars?${params.toString()}`);
   }
 }, [processResult]);

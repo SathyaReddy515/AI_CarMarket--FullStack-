@@ -21,7 +21,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toggleSavedCar } from "@/actions/car-listing";
 import useFetch from "@/hooks/use-fetch";
-import { formatCurrency } from "@/lib/helpers";
+import { formatCurrency } from "@/lib/helper";
 import { format } from "date-fns";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {

@@ -80,7 +80,7 @@ export async function processImageSearch(file) {
 
     // Initialize Gemini API
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 // Convert image file to base64
 // console.log("File type received:", typeof file, file?.constructor?.name);
 // console.log("File object details:", file);

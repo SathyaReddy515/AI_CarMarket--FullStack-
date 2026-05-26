@@ -62,7 +62,7 @@ const carFormSchema = z.object({
   transmission: z.string().min(1, "Transmission type is required"),
   seats :z.string().optional(),
   description: z.string().min(10, "Description is required").max(500, "Description should be at most 500 characters"),
-  status: z.enum(["Available", "Unavailable", "Sold"]),
+  status: z.enum(["AVAILABLE", "UNAVAILABLE", "SOLD"]),
   featured: z.boolean().default(false),
 })
 
@@ -91,6 +91,13 @@ const {register,
     featured: false,
   },
 });
+
+useEffect(() => {
+  register("fuelType");
+  register("transmission");
+  register("bodyType");
+  register("status");
+}, [register]);
 
 const onAiDrop = (acceptedFiles) => {
     // Do something with the files
@@ -147,16 +154,16 @@ useEffect(() => {
 useEffect(() => {
   if( processImageResult?.success) {
     const carDetails = processImageResult.data;
-    setValue("make", carDetails.make );
-    setValue("model", carDetails.model );
-    setValue("year", carDetails.year );
-    setValue("color", carDetails.color );
-    setValue("bodyType",carDetails.bodyType);
-    setValue("fuelType", carDetails.fuelType);
-    setValue("price", carDetails.price);
-    setValue("mileage", carDetails.mileage);
-    setValue("transmission", carDetails.transmission);
-    setValue("description", carDetails.description);
+    setValue("make", String(carDetails.make || ""));
+    setValue("model", String(carDetails.model || ""));
+    setValue("year", String(carDetails.year || ""));
+    setValue("color", String(carDetails.color || ""));
+    setValue("bodyType", String(carDetails.bodyType || ""));
+    setValue("fuelType", String(carDetails.fuelType || ""));
+    setValue("price", String(carDetails.price || ""));
+    setValue("mileage", String(carDetails.mileage || ""));
+    setValue("transmission", String(carDetails.transmission || ""));
+    setValue("description", String(carDetails.description || ""));
 
 
     const reader = new FileReader();
@@ -190,12 +197,24 @@ const onSubmit = async (data) => {
     setImageError("Please upload at least one image of the car.");
     return;
   }
+  
+  // Clean string inputs before parsing to prevent NaN errors (e.g. from AI details)
+  const cleanNumber = (val) => {
+    if (val === undefined || val === null) return "";
+    return val.toString().replace(/[^0-9.]/g, "");
+  };
+  
+  const cleanInt = (val) => {
+    if (val === undefined || val === null) return "";
+    return val.toString().replace(/[^0-9]/g, "");
+  };
+
   const carData = {
     ...data,
-    year: parseInt(data.year),
-    price: parseFloat(data.price),
-    mileage: parseInt(data.mileage),
-    seats: data.seats ? parseInt(data.seats) : null,
+    year: parseInt(cleanInt(data.year)) || new Date().getFullYear(),
+    price: parseFloat(cleanNumber(data.price)) || 0,
+    mileage: parseInt(cleanInt(data.mileage)) || 0,
+    seats: data.seats ? (parseInt(cleanInt(data.seats)) || null) : null,
   };
 
   await addCarFn({carData, images: UploadedImages});
@@ -258,7 +277,15 @@ const onSubmit = async (data) => {
     <CardDescription> Enter the details of the car you want to add. </CardDescription>
   </CardHeader>
   <CardContent>
-    <form onSubmit ={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit ={handleSubmit(onSubmit, (err) => {
+      console.error("Form validation errors raw:", JSON.stringify(err, null, 2));
+      const errorMessages = Object.keys(err).reduce((acc, key) => {
+        acc[key] = err[key]?.message || "Invalid value";
+        return acc;
+      }, {});
+      console.error("Form validation errors:", errorMessages);
+      toast.error(`Please correct the following: ${Object.values(errorMessages).join(", ")}`);
+    })} className="space-y-6">
 
      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
      <div className='space-y-2'>
@@ -328,7 +355,7 @@ const onSubmit = async (data) => {
      <div className='space-y-2'>
     <Label htmlFor='bodyType'>Body Type</Label>
      <Select onValueChange ={ (value) => setValue("bodyType", value)}   defaultValue = {getValues("bodyType")}>
-     <SelectTrigger className= {errors.bodyTypes?"border-red-500": ""}>
+     <SelectTrigger className= {errors.bodyType?"border-red-500": ""}>
      <SelectValue placeholder="Select body Type" />
      </SelectTrigger>
      <SelectContent> {bodyTypes.map((type)=>{
@@ -344,7 +371,7 @@ const onSubmit = async (data) => {
       <Label htmlFor='seats'>Number of Seats{" "}
         <span className='text-sm text-gray-500'>(optional)</span>
       </Label>
-      <Input id='seats' placeholder='e.g. 5' {...register('color')}/>
+      <Input id='seats' placeholder='e.g. 5' {...register('seats')}/>
      </div>
 
      <div className='space-y-2'>
