@@ -1,4 +1,4 @@
-# Vehiql – AI-Powered Full-Stack Car Marketplace & Dealership Hub
+# Vehiql AI Powered Full-Stack Car Marketplace & Dealership Hub
 
 Vehiql is a production-ready, full-stack web application designed for modern car dealerships and marketplaces. Built on a serverless architecture with Next.js 15, Vehiql integrates state-of-the-art **Google Gemini AI** for content extraction and semantic search, **Arcjet** for Web Application Firewall (WAF) shielding, and **Supabase** for database hosting and cloud storage.
 
