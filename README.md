@@ -71,8 +71,8 @@ Create a `.env` (and `.env.local`) file in the root of your project and configur
 
 ```env
 # Database Connections (Supabase PostgreSQL)
-DATABASE_URL="postgresql://postgres.uzgrsujoxaundjvuhgxj:t6AhbE2qaH8kyOSn@aws-1-ap-south-1.pooler.supabase.com:5432/postgres"
-DIRECT_URL="postgresql://postgres.uzgrsujoxaundjvuhgxj:t6AhbE2qaH8kyOSn@aws-1-ap-south-1.pooler.supabase.com:5432/postgres"
+DATABASE_URL=""
+DIRECT_URL="postgresql:"
 
 # Clerk Authentication (Settings -> API Keys)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
@@ -83,15 +83,15 @@ NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/
 NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/
 
 # Supabase Client Settings (Settings -> API)
-NEXT_PUBLIC_SUPABASE_URL="https://uzgrsujoxaundjvuhgxj.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIs...
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIs...
+NEXT_PUBLIC_SUPABASE_URL="..."
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
 
 # Security & Shielding (Arcjet Dashboard)
-ARCJET_KEY=ajkey_...
+ARCJET_KEY=...
 
 # AI Core Key (Google AI Studio)
-GEMINI_API_KEY=AIzaSy...
+GEMINI_API_KEY=...
 ```
 
 ---
