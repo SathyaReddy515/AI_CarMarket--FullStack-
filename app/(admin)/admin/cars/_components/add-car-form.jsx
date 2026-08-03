@@ -37,6 +37,59 @@ const transmission = ["Manual", "Automatic", "Semi-Automatic"];
 const bodyTypes = ["Sedan", "SUV", "Hatchback", "Coupe", "Convertible", "Wagon", "pickup",];
 
 const carStatuses = ["AVAILABLE", "UNAVAILABLE", "SOLD"];
+
+const compressImage = (file, maxWidth = 1024, maxHeight = 1024, quality = 0.75) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = () => resolve(file);
+    };
+    reader.onerror = () => resolve(file);
+  });
+};
+
 const AddCarForm = () => {
 
 const [activeTab, setActiveTab] = useState("ai");
@@ -99,22 +152,31 @@ useEffect(() => {
   register("status");
 }, [register]);
 
-const onAiDrop = (acceptedFiles) => {
+const onAiDrop = async (acceptedFiles) => {
     // Do something with the files
     const file = acceptedFiles[0];
     if (file) {
-      if(file.size > 5 * 1024 * 1024) {
-        toast.error("File size exceeds 5MB limit");
-        return;
-      }
-      setUploadedAiImage(file);
+      const toastId = toast.loading("Optimizing image for AI...");
+      try {
+        const compressedFile = await compressImage(file, 1024, 1024, 0.75);
+        setUploadedAiImage(compressedFile);
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target.result);
-        toast.success("Image uploaded successfully. Proceed to extract details.");
-      };
-      reader.readAsDataURL(file);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setImagePreview(e.target.result);
+          toast.success("Image optimized successfully. Proceed to extract details.", { id: toastId });
+        };
+        reader.readAsDataURL(compressedFile);
+      } catch (err) {
+        console.error("AI image optimization failed:", err);
+        setUploadedAiImage(file);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setImagePreview(e.target.result);
+          toast.error("Optimization failed. Using original file.", { id: toastId });
+        };
+        reader.readAsDataURL(file);
+      }
   }
 }
 
@@ -220,30 +282,47 @@ const onSubmit = async (data) => {
   await addCarFn({carData, images: UploadedImages});
 };
   
-  const onMultiImageDrop = (acceptedFiles) => {
+  const onMultiImageDrop = async (acceptedFiles) => {
     // Do something with the files
-   const validFiles = acceptedFiles.filter((file) => { if (file.size > 5 * 1024 * 1024){
-    toast.error(`${file.name} exceeds the 5MB size limit and was not added.`);  
+   const validFiles = acceptedFiles.filter((file) => { if (file.size > 15 * 1024 * 1024){
+    toast.error(`${file.name} exceeds the 15MB size limit and was not added.`);  
     return false;
    }
    return true;
   });
 
   if(validFiles.length === 0) return;
-   const newImages = []
-   validFiles.forEach((file) => {
-    const reader = new FileReader();
-          reader.onload = (e) => {
-            newImages.push(e.target.result);
+   
+   const toastId = toast.loading(`Optimizing ${validFiles.length} images...`);
+   const newImages = [];
+   
+   for (let i = 0; i < validFiles.length; i++) {
+     try {
+       const compressedFile = await compressImage(validFiles[i], 1200, 1200, 0.8);
+       const reader = new FileReader();
+       await new Promise((resolve) => {
+         reader.onload = (e) => {
+           newImages.push(e.target.result);
+           resolve();
+         };
+         reader.readAsDataURL(compressedFile);
+       });
+     } catch (err) {
+       console.error("Multi-image optimization failed:", err);
+       const reader = new FileReader();
+       await new Promise((resolve) => {
+         reader.onload = (e) => {
+           newImages.push(e.target.result);
+           resolve();
+         };
+         reader.readAsDataURL(validFiles[i]);
+       });
+     }
+   }
 
-            if(newImages.length === validFiles.length) {
-              setUploadedImages((prev) => [...prev, ...newImages]);
-              setImageError("");
-              toast.success(`Successfully uploaded ${validFiles.length} images`)
-            }
-          };
-          reader.readAsDataURL(file);
-});
+   setUploadedImages((prev) => [...prev, ...newImages]);
+   setImageError("");
+   toast.success(`Successfully uploaded ${validFiles.length} images`, { id: toastId });
   }
   const {
     getRootProps:getMultiImageRootProps, 

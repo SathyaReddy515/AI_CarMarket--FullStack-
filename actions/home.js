@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { db } from "@/lib/prisma";
 import aj from "@/lib/arcjet";
 import { request } from "@arcjet/next";
+import { auth } from "@clerk/nextjs/server";
 
 // Function to serialize car data
 function serializeCarData(car) {
@@ -42,11 +43,42 @@ async function fileToBase64(file) {
   return buffer.toString("base64");
 }
 
+async function generateContentWithRetry(model, contents, attempts = 3, delayMs = 1000) {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const result = await model.generateContent(contents);
+      return result;
+    } catch (error) {
+      const errorMsg = error.message || "";
+      const isTransient = 
+        errorMsg.includes("503") || 
+        errorMsg.includes("429") || 
+        errorMsg.includes("quota") || 
+        errorMsg.includes("high demand") ||
+        error.status === 429 || 
+        error.status === 503;
+
+      if (isTransient && i < attempts - 1) {
+        console.warn(`Gemini API error (attempt ${i + 1}/${attempts}): ${errorMsg}. Retrying in ${delayMs}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        delayMs *= 2;
+        continue;
+      }
+      throw error;
+    }
+  }
+}
+
 /**
  * Process car image with Gemini AI
  */
 export async function processImageSearch(file) {
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      throw new Error("Unauthorized. Please sign in to perform image search.");
+    }
+
     // Get request data for ArcJet
     const req = await request();
 
@@ -117,8 +149,8 @@ export async function processImageSearch(file) {
       Only respond with the JSON object, nothing else.
     `;
 
-    // Get response from Gemini
-    const result = await model.generateContent([imagePart, prompt]);
+    // Get response from Gemini with retry logic
+    const result = await generateContentWithRetry(model, [imagePart, prompt]);
     const response = await result.response;
     const text = response.text();
     const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();

@@ -8,9 +8,63 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { processImageSearch } from '@/actions/home'
 import useFetch from '@/hooks/use-fetch'
+import { useAuth } from '@clerk/nextjs'
 
+
+const compressImage = (file, maxWidth = 1024, maxHeight = 1024, quality = 0.75) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new window.Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              resolve(file);
+              return;
+            }
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = () => resolve(file);
+    };
+    reader.onerror = () => resolve(file);
+  });
+};
 
 const HomeSearch = () => {
+const { userId } = useAuth();
 
 const[searchTerm,setSearchTerm] = useState("")
 const[isImageSearchActive,setIsImageSearchActive] = useState(false)
@@ -31,6 +85,11 @@ const {
 
 const handleTextSubmit = (e) => {
   e.preventDefault();
+  if (!userId) {
+    toast.error("Please sign in to search for cars.");
+    router.push("/sign-in");
+    return;
+  }
   if(!searchTerm) {
     toast.error("Please enter a search term");
     return;
@@ -40,6 +99,11 @@ const handleTextSubmit = (e) => {
 }
 const handleImageSearch = async(e) => {
   e.preventDefault();
+  if (!userId) {
+    toast.error("Please sign in to search for cars.");
+    router.push("/sign-in");
+    return;
+  }
   if(!searchImage) {
     toast.error("Please upload an image first");
     return;
@@ -64,27 +128,43 @@ useEffect(() => {
   }
 }, [processResult]);
 
-  const onDrop = (acceptedFiles) => {
+  const onDrop = async (acceptedFiles) => {
     // Do something with the files
     const file = acceptedFiles[0];
     if (file) {
-      if(file.size > 5 * 1024 * 1024) {
-        toast.error("File size exceeds 5MB limit");
-        return;
-      }
       setIsUploading(true);
-      setSearchImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-        setIsUploading(false);
-        toast.success("Image uploaded successfully. Click 'Search with this Image' to proceed.");
-      };
-     reader.onerror = () => {
-        setIsUploading(false);
-        toast.error("Failed to read file");
+      const toastId = toast.loading("Optimizing image for search...");
+      
+      try {
+        const compressedFile = await compressImage(file, 1024, 1024, 0.75);
+        setSearchImage(compressedFile);
+        
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result);
+          setIsUploading(false);
+          toast.success("Image optimized and uploaded successfully. Click 'Search with this Image' to proceed.", { id: toastId });
+        };
+        reader.onerror = () => {
+          setIsUploading(false);
+          toast.error("Failed to read file", { id: toastId });
+        };
+        reader.readAsDataURL(compressedFile);
+      } catch (err) {
+        console.error("Search image optimization failed:", err);
+        setSearchImage(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result);
+          setIsUploading(false);
+          toast.error("Optimization failed. Using original file.", { id: toastId });
+        };
+        reader.onerror = () => {
+          setIsUploading(false);
+          toast.error("Failed to read file", { id: toastId });
+        };
+        reader.readAsDataURL(file);
       }
-      reader.readAsDataURL(file);
   }
 }
   const {getRootProps, getInputProps, isDragActive,isDragReject} = useDropzone({onDrop,

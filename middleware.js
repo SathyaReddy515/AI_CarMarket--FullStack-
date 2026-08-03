@@ -6,6 +6,7 @@ const isProtectedRoute = createRouteMatcher([
     "/admin(.*)",
     "/saved-cars(.*)",
     "/reservations(.*)",
+    "/cars(.*)",
 ]);
 
 const aj = arcjet({

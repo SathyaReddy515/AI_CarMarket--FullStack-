@@ -13,6 +13,33 @@ async function fileToBase64(file) {
     const buffer = Buffer.from(bytes);
     return buffer.toString('base64');
 }
+
+async function generateContentWithRetry(model, contents, attempts = 3, delayMs = 1000) {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const result = await model.generateContent(contents);
+      return result;
+    } catch (error) {
+      const errorMsg = error.message || "";
+      const isTransient = 
+        errorMsg.includes("503") || 
+        errorMsg.includes("429") || 
+        errorMsg.includes("quota") || 
+        errorMsg.includes("high demand") ||
+        error.status === 429 || 
+        error.status === 503;
+
+      if (isTransient && i < attempts - 1) {
+        console.warn(`Gemini API error (attempt ${i + 1}/${attempts}): ${errorMsg}. Retrying in ${delayMs}ms...`);
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        delayMs *= 2;
+        continue;
+      }
+      throw error;
+    }
+  }
+}
+
 export async function processCarImageWithAI(file){
 
     try {
@@ -66,7 +93,7 @@ export async function processCarImageWithAI(file){
       Only respond with the JSON object, nothing else.
     `;
 
-    const result = await model.generateContent([imagePart,prompt]);
+    const result = await generateContentWithRetry(model, [imagePart, prompt]);
     const response = await result.response;
     const text = await response.text();
     const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();

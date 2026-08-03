@@ -3,6 +3,9 @@ const nextConfig = {
   experimental: {
     turbo: false, // disables turbopack
     serverComponentsHmrCache: false, // disables server components HMR cache
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
   },
   
   images:{
