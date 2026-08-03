@@ -133,6 +133,12 @@ export async function getUserTestDrives() {
       data: formattedBookings,
     };
   } catch (error) {
+    if (
+      error.digest === "DYNAMIC_SERVER_USAGE" ||
+      error.message?.includes("Dynamic server usage")
+    ) {
+      throw error;
+    }
     console.error("Error fetching test drives:", error);
     return {
       success: false,

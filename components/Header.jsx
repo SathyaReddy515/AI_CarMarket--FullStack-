@@ -9,6 +9,12 @@ const Header = async ({ isAdminPage = false }) => {
     const user = await checkUser();
     isAdmin = user?.role === "ADMIN";
   } catch (err) {
+    if (
+      err.digest === "DYNAMIC_SERVER_USAGE" ||
+      err.message?.includes("Dynamic server usage")
+    ) {
+      throw err;
+    }
     console.error("Failed to fetch user in Header:", err);
   }
 

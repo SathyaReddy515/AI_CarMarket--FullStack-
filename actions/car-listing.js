@@ -399,6 +399,12 @@ export async function getSavedCars() {
       data: cars,
     };
   } catch (error) {
+    if (
+      error.digest === "DYNAMIC_SERVER_USAGE" ||
+      error.message?.includes("Dynamic server usage")
+    ) {
+      throw error;
+    }
     console.error("Error fetching saved cars:", error);
     return {
       success: false,

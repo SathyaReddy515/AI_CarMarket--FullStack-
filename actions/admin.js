@@ -107,6 +107,12 @@ export async function getAdminTestDrives({ search = "", status = "" }) {
       data: formattedBookings,
     };
   } catch (error) {
+    if (
+      error.digest === "DYNAMIC_SERVER_USAGE" ||
+      error.message?.includes("Dynamic server usage")
+    ) {
+      throw error;
+    }
     console.error("Error fetching test drives:", error);
     return {
       success: false,
@@ -279,6 +285,12 @@ export async function getDashboardData() {
       },
     };
   } catch (error) {
+    if (
+      error.digest === "DYNAMIC_SERVER_USAGE" ||
+      error.message?.includes("Dynamic server usage")
+    ) {
+      throw error;
+    }
     console.error("Error fetching dashboard data:", error.message);
     return {
       success: false,
