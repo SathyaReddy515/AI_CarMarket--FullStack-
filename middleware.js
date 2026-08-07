@@ -9,15 +9,17 @@ const isProtectedRoute = createRouteMatcher([
     "/cars(.*)",
 ]);
 
+const isDev = process.env.NODE_ENV === "development";
+
 const aj = arcjet({
-  key:process.env.ARCJET_KEY,
-  rules:[
+  key: process.env.ARCJET_KEY,
+  rules: [
     shield({
-     mode :"LIVE",
+      mode: isDev ? "DRY_RUN" : "LIVE",
     }),
     detectBot({
-      mode: "LIVE",
-      allow:["CATEGORY:SEARCH_ENGINE"],
+      mode: isDev ? "DRY_RUN" : "LIVE",
+      allow: ["CATEGORY:SEARCH_ENGINE"],
     })
   ]
 })
