@@ -1,8 +1,13 @@
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingRoot: __dirname,
   experimental: {
-    turbo: false, // disables turbopack
-    serverComponentsHmrCache: false, // disables server components HMR cache
     serverActions: {
       bodySizeLimit: '10mb',
     },
